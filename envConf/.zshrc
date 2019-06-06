@@ -1,5 +1,5 @@
 # If you come from bash you might have to change your $PATH.
-export PATH=$HOME/bin:/usr/local/bin:$PATH
+export PATH=$HOME/bin:/usr/local/bin:$PATH:/sbin:/usr/sbin
 
 # Path to your oh-my-zsh installation.
 export ZSH=$HOME/.oh-my-zsh
@@ -76,7 +76,10 @@ plugins=(
        	web-search
        	git-extras
        	docker
+	docker-compose
        	vagrant
+	zsh-256color
+	mysql-colorize
        	zsh-syntax-highlighting
 )
 
