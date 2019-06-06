@@ -72,15 +72,15 @@ ZSH_THEME="powerlevel9k/powerlevel9k"
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
 	git
-       	extract
-       	web-search
-       	git-extras
-       	docker
+	extract
+	web-search
+	git-extras
+	docker
 	docker-compose
-       	vagrant
+	vagrant
 	zsh-256color
 	mysql-colorize
-       	zsh-syntax-highlighting
+	zsh-syntax-highlighting
 )
 
 source $ZSH/oh-my-zsh.sh
