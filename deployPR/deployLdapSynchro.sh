@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# script to apply specificly PR7627 modifications
+# Script to apply specifically PR7627 modifications
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # author:sc979

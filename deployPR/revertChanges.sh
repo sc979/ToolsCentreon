@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# script to revert PR's modifications
+# Script to revert PR's modifications
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # author:sc979
