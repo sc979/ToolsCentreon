@@ -11,7 +11,7 @@ centreonPath="/usr/share/centreon"
 for i in `cat filesLocations.txt`
 do
 	echo "restoring file : "$i
-	yes | cp $centreonPath"/"$i{.old,}
+	yes | cp $centreonPath"/"$i{,.old,}
 	yes | rm $centreonPath"/"$i".old"
 	echo
 done
