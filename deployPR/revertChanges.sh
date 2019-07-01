@@ -11,10 +11,10 @@ centreonPath="/usr/share/centreon"
 for i in `cat filesLocations.txt`
 do
 	echo "restoring file : "$i
-	cp $centreonPath"/"$i{.old,}
-	rm $centreonPath"/"$i".old"
+	yes | cp $centreonPath"/"$i{.old,}
+	yes | rm $centreonPath"/"$i".old"
 	echo
 done
-echo "all file processed"
+echo "all files processed"
 echo
-echo "please restore your DB dump"
+echo "please restore manually your DB dump"

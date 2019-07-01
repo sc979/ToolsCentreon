@@ -8,21 +8,21 @@
 
 centreonPath="/usr/share/centreon"
 
-githubLocation="https://raw.githubusercontent.com/centreon/centreon/544d21751e37e80ff3220869d7abc94dc8653d43"
+githubLocation="https://raw.githubusercontent.com/centreon/centreon/06a5d44f0f1393ea63e4964723735c47c4fd2f7d"
 
 for i in `cat filesLocations.txt`
 do
 	echo "backup file : "$i
-	cp $centreonPath"/"$i{,.old}
+	yes | cp $centreonPath"/"$i{,.old}
 
 	filePath=`dirname "$i"`
 	fileName=`basename "$i"`
 
 	echo "downloading : "
 	wget $githubLocation"/"$filePath"/"$fileName
-	mv $filename $centreonPath"/"$filePath
+	yes | mv $fileName $centreonPath"/"$filePath
 	echo
 done
-echo "all files modified"i
+echo "all files modified"
 echo
 echo "please manually apply the upgrade script"
