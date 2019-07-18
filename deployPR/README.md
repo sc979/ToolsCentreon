@@ -1,19 +1,22 @@
 # ToolsCentreon/deployPR
 
-# Licensed under the Apache License, Version 2.0 (the "License");
-# author:sc979
-# https://github.com/sc979
+Licensed under the Apache License, Version 2.0 (the "License");
+author:sc979
+https://github.com/sc979
 
 This is a Readme file to help you use these scripts
+
 
 **Notice**
 
 I'm doing this out of my work time.
 
-These scripts are still in a work in progress / draft state, to help customers and support team, deploy PR on customers' environnements.
-
 As almost all scripts, it needs to be executable :
 `$ chmod +x {filename}`
+
+**Caution**
+
+These scripts are still in a work in progress / draft state, to help customers and support team, deploy PR on customers' environnements.
 
 **Deploy Script**
 
