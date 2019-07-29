@@ -9,6 +9,7 @@ www/class/centreonAuth.class.php
 www/class/centreonContactgroup.class.php
 www/class/centreonLDAP.class.php
 www/img/icons/refresh-gray.png
+www/include/Administration/parameters/ldap/DB-Func.php
 www/include/Administration/parameters/ldap/form.ihtml
 www/include/Administration/parameters/ldap/form.php
 www/include/Administration/parameters/ldap/help.php
