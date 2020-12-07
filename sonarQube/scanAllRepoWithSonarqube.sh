@@ -25,12 +25,13 @@ function launch_sonar() {
 
 function colored_output() {
 	echo ""
-	echo "\e[31mbold"$1"\e[0m"
+	echo -e "\e[31m\e[1m"$1"\e[0m"
 }
 
 REPLY=( $(ls | grep -i 'centreon') )
 for i in ${REPLY[@]}; do
 	echo ""
+	# specific for map project. As three modules are in the same repo
 	if [ $i == 'centreon-map' ]; then
 		colored_output "Repo to scan : "$i"-web"
 		launch_sonar
