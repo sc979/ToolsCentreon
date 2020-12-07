@@ -40,8 +40,8 @@ function update_master_branch() {
 #----
 function save_credentials() {
 	git config credential.helper store
-	git config --global user.name "$1" #"schapron"
-	git config --global user.email "$2" #"schapron@centreon.com"
+	git config --global user.name "$1"
+	git config --global user.email "$2"
 	git fetch
 	echo "${1}"
 	echo "${3}"
