@@ -20,7 +20,6 @@ function usage() {
 ## {Format messages}
 #----
 function colored_output() {
-  echo ""
   echo -e "\e[31m\e[1m"$1"\e[0m"
 }
 
