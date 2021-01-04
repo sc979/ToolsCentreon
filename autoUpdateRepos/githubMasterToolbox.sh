@@ -201,13 +201,13 @@ for i in ${REPLY[@]}; do
   cd $i
   if [[ $SAVE_CREDENTIALS -eq 1 ]]; then
     save_credentials "$USERNAME" "$MAIL" "$TOKEN"
-  elif [ "$UPDATE" -eq 1 ]; then
+  elif [[ $UPDATE -eq 1 ]]; then
     update_master_branch
-  elif [ "$CLEAN" -eq 1 ]; then
+  elif [[ $CLEAN -eq 1 ]]; then
     clean_old_branches
-  elif [ "$DEPLOY" -eq 1 ]; then
+  elif [[ $DEPLOY -eq 1 ]]; then
     deploy_file  "$BRANCH_NAME" "$COMMIT_MESSAGE" "$FILE_TO_DEPLOY"
-  elif [ "$PUSH" -eq 1 ]; then
+  elif [[ $PUSH -eq 1 ]]; then
     push_branch "$BRANCH_NAME"
   else
     error_output "Argument not implemented"
