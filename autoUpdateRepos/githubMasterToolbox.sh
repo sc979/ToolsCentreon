@@ -28,6 +28,7 @@ function usage() {
   echo -e "  -s\tSave your credentials on all repositories"
   echo -e "  -u\tUpdate all master branches"
   echo -e "  -c\tClean deleted branches on the distant"
+  echo -e "  -v\tClean vendor folders from all projects"
   echo -e "  -d\tDeploy file to all repos"
   echo -e "  -p\tCreate same branch on each repo and push them"
   echo ""
@@ -105,6 +106,16 @@ function push_branch() {
   fi
 }
 
+#
+## {Delete vendor folder from projects}
+#
+function delete_vendor_folders() {
+  VENDOR_PATH=`find ./ -name "vendor"`
+  if [[ $VENDOR_PATH == "./vendor" || $VENDOR_PATH == "./server/vendor" || $VENDOR_PATH == "./web/app/vendor" ]]; then
+    rm -rf $VENDOR_PATH
+  fi
+}
+
 #---
 ## {Variables}
 #---
@@ -112,18 +123,19 @@ SAVE_CREDENTIALS=0
 UPDATE=0
 DEPLOY=0
 PUSH=0
-CLEAN=0
+CLEAN_BRANCHES=0
 USERNAME=""
 EMAIL=""
 TOKEN=""
 BRANCH_NAME=""
 COMMIT_MESSAGE=""
 FILE_TO_DEPLOY=""
+CLEAN_VENDOR=0
 
 #---
 ## {Process options}
 #----
-while getopts "sucdph" OPTIONS
+while getopts "sucvdph" OPTIONS
 do
   case ${OPTIONS} in
     s)
@@ -147,7 +159,10 @@ do
       UPDATE=1
       ;;
     c)
-      CLEAN=1
+      CLEAN_BRANCHES=1
+      ;;
+	v)
+      CLEAN_VENDOR=1
       ;;
     d)
       DEPLOY=1
@@ -186,7 +201,7 @@ do
   esac
 done
 
-if [[ $SAVE_CREDENTIALS -eq 0 && $UPDATE -eq 0 && $DEPLOY -eq 0 && $PUSH -eq 0 && CLEAN -eq 0 ]]; then
+if [[ $SAVE_CREDENTIALS -eq 0 && $UPDATE -eq 0 && $DEPLOY -eq 0 && $PUSH -eq 0 && CLEAN_BRANCHES -eq 0 && CLEAN_VENDOR -eq 0 ]]; then
   usage
   exit 1
 fi
@@ -203,8 +218,10 @@ for i in ${REPLY[@]}; do
     save_credentials "$USERNAME" "$MAIL" "$TOKEN"
   elif [[ $UPDATE -eq 1 ]]; then
     update_master_branch
-  elif [[ $CLEAN -eq 1 ]]; then
+  elif [[ $CLEAN_BRANCHES -eq 1 ]]; then
     clean_old_branches
+  elif [[ $CLEAN_VENDOR -eq 1 ]]; then
+    delete_vendor_folders
   elif [[ $DEPLOY -eq 1 ]]; then
     deploy_file  "$BRANCH_NAME" "$COMMIT_MESSAGE" "$FILE_TO_DEPLOY"
   elif [[ $PUSH -eq 1 ]]; then
