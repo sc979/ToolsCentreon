@@ -18,6 +18,9 @@ function error_output() {
 function query_output() {
   echo -e "\e[34m\e[1m"$1"\e[0m"
 }
+function query_info() {
+  echo -e "\e[35m\e[1m"$1"\e[0m"
+}
 
 #---
 ## {Print help and usage}
@@ -29,8 +32,8 @@ function usage() {
   echo -e "  -u\tUpdate all master branches"
   echo -e "  -c\tClean deleted branches on the distant"
   echo -e "  -v\tClean vendor folders from all projects"
-  echo -e "  -d\tDeploy file to all repos"
-  echo -e "  -p\tCreate same branch on each repo and push them"
+  #echo -e "  -d\tDeploy file to all repos"
+  #echo -e "  -p\tCreate same branch on each repo and push them"
   echo ""
   exit 1
 }
@@ -39,18 +42,24 @@ function usage() {
 ## {Purge old branches}
 #---
 function clean_old_branches() {
+  query_info "Search for old branches"
   git fetch --all --tags --prune
+  if [[ $? -eq 0 ]]; then
+    query_output "Old branches removed"
+  fi;
 }
 
 #---
 ## {Update the master/main}
 #----
 function update_master_branch() {
+  query_info "Search for commits"
   git fetch --all --tags
   git stash clear && git stash
   git checkout master
   git pull
   git stash apply
+  query_output "Repository updated"
 }
 
 #---
@@ -110,10 +119,16 @@ function push_branch() {
 ## {Delete vendor folder from projects}
 #
 function delete_vendor_folders() {
+  query_info "Search for vendor folder"
   VENDOR_PATH=`find ./ -name "vendor"`
-  if [[ $VENDOR_PATH == "./vendor" || $VENDOR_PATH == "./server/vendor" || $VENDOR_PATH == "./web/app/vendor" ]]; then
-    rm -rf $VENDOR_PATH
+  for i in ${VENDOR_PATH[@]}; do
+    if [[ $i == "./vendor" || $i == "./server/vendor" || $i == "./web/app/vendor" ]]; then
+      rm -rf "$i"
+      if [[ $? -eq 0 ]]; then
+        query_output "Folder removed : $i"
+      fi
   fi
+done
 }
 
 #---
@@ -135,7 +150,10 @@ CLEAN_VENDOR=0
 #---
 ## {Process options}
 #----
-while getopts "sucvdph" OPTIONS
+
+# Removing WIP d & p options
+#while getopts "sucvdph" OPTIONS
+while getopts "sucvh" OPTIONS
 do
   case ${OPTIONS} in
     s)
@@ -161,7 +179,7 @@ do
     c)
       CLEAN_BRANCHES=1
       ;;
-	v)
+    v)
       CLEAN_VENDOR=1
       ;;
     d)
@@ -209,27 +227,35 @@ fi
 #---
 ## {Scan folder and process selected task}
 #----
+
+echo "Clean vendor $CLEAN_VENDOR";
+echo "Clean branches $CLEAN_BRANCHES";
+echo "Update $UPDATE";
+
+
 REPLY=( $(ls | grep -i 'centreon') )
 for i in ${REPLY[@]}; do
   echo ""
-  success_output "Repo to update : "$i
+  success_output "Repository : $i"
   cd $i
   if [[ $SAVE_CREDENTIALS -eq 1 ]]; then
     save_credentials "$USERNAME" "$MAIL" "$TOKEN"
-  elif [[ $UPDATE -eq 1 ]]; then
-    update_master_branch
-  elif [[ $CLEAN_BRANCHES -eq 1 ]]; then
-    clean_old_branches
-  elif [[ $CLEAN_VENDOR -eq 1 ]]; then
-    delete_vendor_folders
-  elif [[ $DEPLOY -eq 1 ]]; then
-    deploy_file  "$BRANCH_NAME" "$COMMIT_MESSAGE" "$FILE_TO_DEPLOY"
-  elif [[ $PUSH -eq 1 ]]; then
-    push_branch "$BRANCH_NAME"
   else
-    error_output "Argument not implemented"
-    usage
-    exit 1
+    if [[ $CLEAN_VENDOR -eq 1 ]]; then
+      delete_vendor_folders
+    fi
+    if [[ $CLEAN_BRANCHES -eq 1 ]]; then
+      clean_old_branches
+    fi
+    if [[ $UPDATE -eq 1 ]]; then
+      update_master_branch
+    fi
+    if [[ $DEPLOY -eq 1 ]]; then
+      deploy_file  "$BRANCH_NAME" "$COMMIT_MESSAGE" "$FILE_TO_DEPLOY"
+    fi
+    if [[ $PUSH -eq 1 ]]; then
+      push_branch "$BRANCH_NAME"
+    fi
   fi
   cd ..
   success_output "OK"
