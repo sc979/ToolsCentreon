@@ -68,33 +68,38 @@ function find_centreon_configuration_file() {
   info_message "Search for Centreon configuration file"
   FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php")
   if [[ ${#FOUND_ETC_FOLDER[*]} -ne 1 ]]; then
-     error_message "More than one folder has been found"
-     error_message "This feature will be implemented soon"
-   else
-     CENTREON_ETC_FILE=$FOUND_ETC_FOLDER
-     success_message "Found file : $CENTREON_ETC_FILE"
-   fi
+    error_message "More than one folder has been found"
+    error_message "This feature will be implemented soon"
+  else
+    CENTREON_ETC_FILE=$FOUND_ETC_FOLDER
+    success_message "Found file : $CENTREON_ETC_FILE"
+  fi
 }
 
 ## {Search for Centreon web installation path from configuration file}
 function find_centreon_path() {
   info_message "Search for installed Centreon path"
   while IFS= read -r LINE; do
-    if [[ "$LINE"  == *"centreon_path"* ]]; then
+    if [[ "$LINE" == *"centreon_path"* ]]; then
       VALUE=$(echo $LINE | cut -d '=' -f 2)
       VALUE=$(echo $VALUE | tr -d "'")
-      VALUE=$(echo $VALUE | tr -d ";")
-      success_message "Centreon path found = $VALUE"
+      CENTREON_PATH=$(echo $VALUE | tr -d ";")
+      success_message "Centreon path found in the configuration file = $CENTREON_PATH"
     fi
   done < "$CENTREON_ETC_FILE"
 }
 
 ## {Execute the ANSSI rules on Centreon web}
 function run_rules() {
+  info_message "Searching rules provided by the ANSSI"
   RULES=$(find ./$RULES_FOLDER -name "*.yara")
-  for i in ${RULES[@]}; do
-    RULE_NAME=$(echo $i | cut -d '/' -f 3)
-    info_message "Found rule : $i"
+  for RULE in ${RULES[@]}; do
+    RULE_NAME=$(echo $RULE | cut -d '/' -f 3)
+    output_message "Testing rule : $RULE_NAME"
+    yara --recursive "$RULE" "$CENTREON_PATH"
+    if [[ $? -eq 0 ]]; then
+      success_message "\tNo vulnerability found"
+    fi
   done
 }
 
@@ -103,6 +108,3 @@ check_that_yara_is_installed
 find_centreon_configuration_file
 find_centreon_path
 run_rules
-
-echo "END DEBUG"
-exit 2;
