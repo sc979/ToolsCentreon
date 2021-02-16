@@ -52,8 +52,9 @@ function usage() {
 
 ## {Variables}
 RULES_FOLDER="CERTFR-2021-IOC-002-YARA_2021-02-16"
-CENTREON_ETC_FOLDER="/etc/centreon/centreon.conf.php"
+CENTREON_ETC_FILE="/etc/centreon/centreon.conf.php"
 
+## {Check if mandatory Yara is installed}
 function check_that_yara_is_installed() {
   if ! [[ -x "$(command -v yara)" ]]; then
     error_message "Yara software was not found"
@@ -62,6 +63,7 @@ function check_that_yara_is_installed() {
   fi
 }
 
+## {Search for Centreon configuration file 'centreon.conf.php'}
 function find_centreon_configuration_file() {
   info_message "Search for Centreon configuration file"
   FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php")
@@ -69,24 +71,34 @@ function find_centreon_configuration_file() {
      error_message "More than one folder has been found"
      error_message "This feature will be implemented soon"
    else
-     info_message "Folder found : $FOUND_ETC_FOLDER"
-     CENTREON_ETC_FOLDER=$FOUND_ETC_FOLDER
+     CENTREON_ETC_FILE=$FOUND_ETC_FOLDER
+     success_message "Found file : $CENTREON_ETC_FILE"
    fi
 }
 
+## {Search for Centreon web installation path from configuration file}
 function find_centreon_path() {
-  info_message "Search for Centreon path"
-
+  info_message "Search for installed Centreon path"
+  while IFS= read -r LINE; do
+    if [[ "$LINE"  == *"centreon_path"* ]]; then
+      VALUE=$(echo $LINE | cut -d '=' -f 2)
+      VALUE=$(echo $VALUE | tr -d "'")
+      VALUE=$(echo $VALUE | tr -d ";")
+      success_message "Centreon path found = $VALUE"
+    fi
+  done < "$CENTREON_ETC_FILE"
 }
+
+## {Execute the ANSSI rules on Centreon web}
 function run_rules() {
   RULES=$(find ./$RULES_FOLDER -name "*.yara")
   for i in ${RULES[@]}; do
-    RULE_NAME=`echo $i | cut -d '/' -f 3`
-    info_message "Rule : $i"
-    normal_message "Rule : $RULE_NAME"
+    RULE_NAME=$(echo $i | cut -d '/' -f 3)
+    info_message "Found rule : $i"
   done
 }
 
+## {Run the script}
 check_that_yara_is_installed
 find_centreon_configuration_file
 find_centreon_path
