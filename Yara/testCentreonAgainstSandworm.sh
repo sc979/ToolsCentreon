@@ -55,7 +55,7 @@ RULES_FOLDER="CERTFR-2021-IOC-002-YARA_2021-02-16"
 CENTREON_ETC_FOLDER="/etc/centreon/centreon.conf.php"
 
 function check_that_yara_is_installed() {
-  if [[ ! -x "$(command yara --version)" ]]; then
+  if ! [[ -x "$(command -v yara)" ]]; then
     error_message "Yara software was not found"
     usage
     exit 1
@@ -74,6 +74,10 @@ function find_centreon_configuration_file() {
    fi
 }
 
+function find_centreon_path() {
+  info_message "Search for Centreon path"
+
+}
 function run_rules() {
   RULES=$(find ./$RULES_FOLDER -name "*.yara")
   for i in ${RULES[@]}; do
@@ -85,6 +89,7 @@ function run_rules() {
 
 check_that_yara_is_installed
 find_centreon_configuration_file
+find_centreon_path
 run_rules
 
 echo "END DEBUG"
