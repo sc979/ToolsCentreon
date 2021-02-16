@@ -228,11 +228,6 @@ fi
 ## {Scan folder and process selected task}
 #----
 
-echo "Clean vendor $CLEAN_VENDOR";
-echo "Clean branches $CLEAN_BRANCHES";
-echo "Update $UPDATE";
-
-
 REPLY=( $(ls | grep -i 'centreon') )
 for i in ${REPLY[@]}; do
   echo ""
