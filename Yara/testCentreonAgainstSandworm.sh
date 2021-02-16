@@ -56,7 +56,7 @@ CENTREON_ETC_FOLDER="/etc/centreon/centreon.conf.php"
 
 function find_centreon_configuration_file() {
   info_message "Search for Centreon configuration file"
-  CENTREON_ETC_FOLDER=`find / -name "centreon.conf.php"`
+  CENTREON_ETC_FOLDER=$(find / -name "centreon.conf.php")
   if [[ ${#CENTREON_ETC_FOLDER[*]} -ne 1 ]]; then
      error_message "More than one folder has been found"
      error_message "This feature will be implemented soon"
