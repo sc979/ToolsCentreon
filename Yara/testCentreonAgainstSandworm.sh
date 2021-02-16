@@ -54,17 +54,38 @@ function usage() {
 RULES_FOLDER="CERTFR-2021-IOC-002-YARA_2021-02-16"
 CENTREON_ETC_FOLDER="/etc/centreon/centreon.conf.php"
 
+function check_that_yara_is_installed() {
+  if [[ ! -x "$(command yara --version)" ]]; then
+    error_message "Yara software was not found"
+    usage
+    exit 1
+  fi
+}
+
 function find_centreon_configuration_file() {
   info_message "Search for Centreon configuration file"
-  CENTREON_ETC_FOLDER=$(find / -name "centreon.conf.php")
-  if [[ ${#CENTREON_ETC_FOLDER[*]} -ne 1 ]]; then
+  FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php")
+  if [[ ${#FOUND_ETC_FOLDER[*]} -ne 1 ]]; then
      error_message "More than one folder has been found"
      error_message "This feature will be implemented soon"
    else
-     info_message "Folder found : $CENTREON_ETC_FOLDER"
+     info_message "Folder found : $FOUND_ETC_FOLDER"
+     CENTREON_ETC_FOLDER=$FOUND_ETC_FOLDER
    fi
 }
 
+function run_rules() {
+  RULES=$(find ./$RULES_FOLDER -name "*.yara")
+  for i in ${RULES[@]}; do
+    RULE_NAME=`echo $i | cut -d '/' -f 3`
+    info_message "Rule : $i"
+    normal_message "Rule : $RULE_NAME"
+  done
+}
+
+check_that_yara_is_installed
 find_centreon_configuration_file
-echo "END"
-exit
+run_rules
+
+echo "END DEBUG"
+exit 2;
