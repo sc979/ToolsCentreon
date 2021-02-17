@@ -21,16 +21,16 @@
 ## {Format messages}
 #---
 function success_message() {
-  echo -e "\e[32m\e[1m"$1"\e[0m\n"
+  echo -e "\e[32m\e[1m$1\e[0m\n"
 }
 function error_message() {
-  echo -e "\e[31m\e[1m$1\e[0m\n"
+  echo -e "\e[31m\e[1m$1\e[0m"
 }
 function output_message() {
-  echo -e "\t\e[35m\e[1m$1\e[0m"
+  echo -e "\e[35m\e[1m$1\e[0m"
 }
 function info_message() {
-  echo -e "\e[34m\e[1m\t$1\e[0m"
+  echo -e "\e[34m\e[1m$1\e[0m"
 }
 function normal_message() {
   echo -e "\e[0m$1"
@@ -48,11 +48,14 @@ function usage() {
   info_message "to test your platform against modifications made by sandStorm or Exaramel"
   normal_message "\tThe rules were provided the February 26, 2021 here :"
   output_message "\thttp://www.cert.ssi.gouv.fr/uploads/CERTFR-2021-IOC-002-YARA.zip"
+  normal_message ""
+  normal_message "VirusTotal Yara can be found here : "
   #Usage
   normal_message ""
   normal_message "Usage:"
   normal_message ""
-  normal_message "\t-r\tRun the script"
+  output_message "Do not run this script from the /tmp folder to avoid false positive (ie: the rules)"
+  success_message "\t-r\tRun the script"
   normal_message "\t-h\tDisplay this help"
   #Help
   normal_message ""
@@ -64,9 +67,9 @@ function usage() {
   normal_message "\tyum clean all"
   normal_message "\tyum install yara.x86_64\n"
   info_message "On CentOS 6 :"
-  normal_message "\tUse the Forensic repository available here :"
-  normal_message "\thttps://centos.pkgs.org/6/forensics-x86_64/yara-3.5.0-7.1.el6.x86_64.rpm.html"
-  normal_message "\tyum install yara-3.5.0-7.1.el6.x86_64.rpm\n"
+  normal_message "\tUse the tool provided on the Forensic repository"
+  normal_message "\tyum install https://centos.pkgs.org/6/forensics-x86_64/yara-3.5.0-7.1.el6.x86_64.rpm.html"
+  normal_message ""
 }
 
 #---
@@ -78,6 +81,7 @@ RULES_FOLDER="CERTFR-2021-IOC-002-YARA_2021-02-16"
 CENTREON_ETC_FILE="/etc/centreon/centreon.conf.php"
 CENTREON_PATH=""
 EXARAMEL_PATH_TO_CHECK=("/tmp/" "/etc/init/" "/etc/init.d/" "/etc/systemd/system/")
+COUNT=0
 
 
 #---
@@ -88,15 +92,15 @@ function check_that_yara_is_installed() {
   YARA=$(which yara)
   if [[ -z $YARA ]]; then
     usage
-    error_message "Yara binary was not found"
+    error_message "Yara binary was not found\n"
     exit 1
   else
-    success_message "Yara binary found in: $YARA"
+    info_message "Yara binary found in: $YARA\n"
   fi
   # Checking the binary response
   if ! [[ -x "$(command -v $YARA)" ]]; then
     usage
-    error_message "Yara binary was not found"
+    error_message "Yara binary was not found\n"
     exit 1
   fi
 }
@@ -110,19 +114,19 @@ function find_centreon_configuration_file() {
   GET_CENTREON_ETC=$(ls "$CENTREON_ETC_FILE" 2>/dev/null)
   if [[ ${#GET_CENTREON_ETC[@]} -eq 1 && -n ${GET_CENTREON_ETC[0]} && -e ${GET_CENTREON_ETC[0]} ]]; then
     CENTREON_ETC_FILE=${GET_CENTREON_ETC[0]}
-    success_message "Found file: GET_CENTREON_ETC"
+    info_message "Found file: $GET_CENTREON_ETC\n"
   else
-    error_message "Centreon configuration file was not found in folders commonly used "
+    error_message "Centreon configuration file was not found in folders commonly used\n"
     # Searching configuration file on all the platform
     normal_message "Searching for Centreon configuration file in all the filesystem"
     FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php"  2>/dev/null)
     if [[ ${#FOUND_ETC_FOLDER[@]} -eq 1 && -n ${FOUND_ETC_FOLDER[0]} && -e ${FOUND_ETC_FOLDER[0]} ]]; then
       CENTREON_ETC_FILE=${FOUND_ETC_FOLDER[0]}
-      success_message "Found file: $CENTREON_ETC_FILE"
+      success_message "Found file: $CENTREON_ETC_FILE\n"
     else
       # Reseting provided configuration file and ask later for centreon installation folder
       CENTREON_ETC_FILE=""
-      error_message "Centreon configuration file was not found in the filesystem"
+      error_message "Centreon configuration file was not found in the filesystem\n"
     fi
   fi
 }
@@ -142,15 +146,15 @@ function find_centreon_path() {
       fi
     done < "$CENTREON_ETC_FILE"
   else
-    error_message "Skipping Centreon configuration file parsing"
+    error_message "Skipping Centreon configuration file parsing\n"
     ask_for_centreon_configuration_location
   fi
 
   # Check that the path exists and is a folder
   if [[ -n $CENTREON_PATH && -d $CENTREON_PATH ]]; then
-    success_message "Setting Centreon path as: $CENTREON_PATH\n"
+    info_message "Setting Centreon path as: $CENTREON_PATH\n"
   else
-    error_message "Cannot find Centreon path in the configuration file"
+    error_message "Cannot find Centreon path in the configuration file\n"
     ask_for_centreon_configuration_location
   fi
 }
@@ -162,12 +166,20 @@ function run_rule() {
   local RULE=$1
   local PATH=$2
   normal_message "Testing rule: $RULE on $PATH"
-  RESULT=$("$YARA" --recursive "$RULE" "$PATH")
-  if [[ -z $RESULT ]]; then
-      success_message "\tNo vulnerability found"
+  #Check that the folder exists and we can read it
+  if [[ -d $PATH && -r $PATH ]]; then
+    RESULT=$("$YARA" --recursive "$RULE" "$PATH")
+    if [[ -z $RESULT ]]; then
+        success_message "Yara found nothing using the rule $RULE on the files of $PATH"
+    else
+      output_message "Yara tool returned the message:"
+      error_message "$RESULT"
+      normal_message ""
+      ((COUNT+=1))
+    fi
   else
-    output_message "Yara tool returned the message:"
-    error_message "$RESULT"
+    error_message "\tFolder: $PATH does not exists or is not readable by this user"
+    normal_message "\tSkipping this folder\n"
   fi
 }
 
@@ -188,6 +200,17 @@ function find_rules() {
     fi
   done
   cd ..
+
+  if [[ $COUNT -gt 0 ]]; then
+    WORDING="issues were"
+    if [[ $COUNT -eq 1 ]]; then
+      WORDING="issue was"
+    fi
+    error_message "\n\t$COUNT $WORDING found\n"
+    error_message "\tYour platform may have been compromised."
+    error_message "\tApply as soon as possible your incidence response plan"
+    normal_message ""
+  fi
 }
 
 #---
@@ -202,12 +225,12 @@ function ask_for_centreon_configuration_location() {
     read CUSTOM_LOCATION
 
     if [[ -z $CUSTOM_LOCATION ]]; then
-      error_message "\nEmpty path given"
+      error_message "\nEmpty path given\n"
     elif [[ -n $CUSTOM_LOCATION && -d $CUSTOM_LOCATION ]]; then
       ERROR=0
       CENTREON_PATH=$CUSTOM_LOCATION
     else
-      error_message "\nFolder: '$CUSTOM_LOCATION' not found, not a directory or not readable"
+      error_message "\nFolder: '$CUSTOM_LOCATION' not found, not a directory or not readable\n"
     fi
   done
 }
