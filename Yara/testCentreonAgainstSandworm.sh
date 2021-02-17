@@ -17,94 +17,228 @@
 # For more information : security@centreon.com or contact@centreon.com
 #
 
+#---
 ## {Format messages}
+#---
 function success_message() {
-  echo -e "\e[32m\e[1m"$1"\e[0m"
+  echo -e "\e[32m\e[1m"$1"\e[0m\n"
 }
 function error_message() {
-  echo -e "\e[31m\e[1m$1\e[0m"
+  echo -e "\e[31m\e[1m$1\e[0m\n"
 }
 function output_message() {
-  echo -e "\e[34m\e[1m$1\e[0m"
+  echo -e "\t\e[35m\e[1m$1\e[0m"
 }
 function info_message() {
-  echo -e "\e[35m\e[1m$1\e[0m"
+  echo -e "\e[34m\e[1m\t$1\e[0m"
 }
 function normal_message() {
   echo -e "\e[0m$1"
 }
 
+#---
 ## {Print description and usage}
+#---
 function usage() {
-  output_message "\nThis tool will use the Yara software and "
-  output_message "test the rules provided by the ANSSI to test your platform against sandStorm"
-  success_message "\nHelp:\n"
+  #Description
+  normal_message ""
+  normal_message "Description:"
+  normal_message ""
+  info_message "This tool will use the Yara software and execute each rule provided by the ANSSI"
+  info_message "to test your platform against modifications made by sandStorm or Exaramel"
+  normal_message "\tThe rules were provided the February 26, 2021 here :"
+  output_message "\thttp://www.cert.ssi.gouv.fr/uploads/CERTFR-2021-IOC-002-YARA.zip"
+  #Usage
+  normal_message ""
+  normal_message "Usage:"
+  normal_message ""
+  normal_message "\t-r\tRun the script"
+  normal_message "\t-h\tDisplay this help"
+  #Help
+  normal_message ""
+  normal_message "Help:"
+  normal_message ""
   normal_message "\tMake sure to have installed the yara software\n"
-  output_message "\tOn CentOS 7 :"
-  normal_message "\t\tyum install epel-release"
-  normal_message "\t\tyum clean all"
-  normal_message "\t\tyum install yara.x86_64\n"
-  output_message "\tOn CentOS 6 :"
-  normal_message "\t\tUse the Forensic repository available here :"
-  normal_message "\t\thttps://centos.pkgs.org/6/forensics-x86_64/yara-3.5.0-7.1.el6.x86_64.rpm.html"
-  normal_message "\t\tyum install yara-3.5.0-7.1.el6.x86_64.rpm\n"
+  info_message "On CentOS 7 :"
+  normal_message "\tyum install epel-release"
+  normal_message "\tyum clean all"
+  normal_message "\tyum install yara.x86_64\n"
+  info_message "On CentOS 6 :"
+  normal_message "\tUse the Forensic repository available here :"
+  normal_message "\thttps://centos.pkgs.org/6/forensics-x86_64/yara-3.5.0-7.1.el6.x86_64.rpm.html"
+  normal_message "\tyum install yara-3.5.0-7.1.el6.x86_64.rpm\n"
 }
 
+#---
 ## {Variables}
+#---
+RUN=0
+YARA=""
 RULES_FOLDER="CERTFR-2021-IOC-002-YARA_2021-02-16"
 CENTREON_ETC_FILE="/etc/centreon/centreon.conf.php"
+CENTREON_PATH=""
+EXARAMEL_PATH_TO_CHECK=("/tmp/" "/etc/init/" "/etc/init.d/" "/etc/systemd/system/")
 
-## {Check if mandatory Yara is installed}
+
+#---
+## {Check if mandatory Yara tool is installed}
+#---
 function check_that_yara_is_installed() {
-  if ! [[ -x "$(command -v yara)" ]]; then
-    error_message "Yara software was not found"
+  # searching for the binary path
+  YARA=$(which yara)
+  if [[ -z $YARA ]]; then
     usage
+    error_message "Yara binary was not found"
+    exit 1
+  else
+    success_message "Yara binary found in: $YARA"
+  fi
+  # Checking the binary response
+  if ! [[ -x "$(command -v $YARA)" ]]; then
+    usage
+    error_message "Yara binary was not found"
     exit 1
   fi
 }
 
+#---
 ## {Search for Centreon configuration file 'centreon.conf.php'}
+#---
 function find_centreon_configuration_file() {
-  info_message "Search for Centreon configuration file"
-  FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php")
-  if [[ ${#FOUND_ETC_FOLDER[*]} -ne 1 ]]; then
-    error_message "More than one folder has been found"
-    error_message "This feature will be implemented soon"
+  normal_message "Searching for Centreon configuration file in default folders"
+  # Searching configuration file in default folder
+  GET_CENTREON_ETC=$(ls "$CENTREON_ETC_FILE" 2>/dev/null)
+  if [[ ${#GET_CENTREON_ETC[@]} -eq 1 && -n ${GET_CENTREON_ETC[0]} && -e ${GET_CENTREON_ETC[0]} ]]; then
+    CENTREON_ETC_FILE=${GET_CENTREON_ETC[0]}
+    success_message "Found file: GET_CENTREON_ETC"
   else
-    CENTREON_ETC_FILE=$FOUND_ETC_FOLDER
-    success_message "Found file : $CENTREON_ETC_FILE"
+    error_message "Centreon configuration file was not found in folders commonly used "
+    # Searching configuration file on all the platform
+    normal_message "Searching for Centreon configuration file in all the filesystem"
+    FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php"  2>/dev/null)
+    if [[ ${#FOUND_ETC_FOLDER[@]} -eq 1 && -n ${FOUND_ETC_FOLDER[0]} && -e ${FOUND_ETC_FOLDER[0]} ]]; then
+      CENTREON_ETC_FILE=${FOUND_ETC_FOLDER[0]}
+      success_message "Found file: $CENTREON_ETC_FILE"
+    else
+      # Reseting provided configuration file and ask later for centreon installation folder
+      CENTREON_ETC_FILE=""
+      error_message "Centreon configuration file was not found in the filesystem"
+    fi
   fi
 }
 
-## {Search for Centreon web installation path from configuration file}
+#---
+## {Search for Centreon web installation path from the configuration file}
+#---
 function find_centreon_path() {
-  info_message "Search for installed Centreon path"
-  while IFS= read -r LINE; do
-    if [[ "$LINE" == *"centreon_path"* ]]; then
-      VALUE=$(echo $LINE | cut -d '=' -f 2)
-      VALUE=$(echo $VALUE | tr -d "'")
-      CENTREON_PATH=$(echo $VALUE | tr -d ";")
-      success_message "Centreon path found in the configuration file = $CENTREON_PATH"
-    fi
-  done < "$CENTREON_ETC_FILE"
+  normal_message "Searching for installed Centreon path"
+  #Find centreon path in the configuration file
+  if [[ -n $CENTREON_ETC_FILE ]]; then
+    while IFS= read -r LINE; do
+      if [[ "$LINE" == *"centreon_path"* ]]; then
+        VALUE=$(echo $LINE | cut -d '=' -f 2)
+        VALUE=$(echo $VALUE | tr -d "'")
+        CENTREON_PATH=$(echo $VALUE | tr -d ";")
+      fi
+    done < "$CENTREON_ETC_FILE"
+  else
+    error_message "Skipping Centreon configuration file parsing"
+    ask_for_centreon_configuration_location
+  fi
+
+  # Check that the path exists and is a folder
+  if [[ -n $CENTREON_PATH && -d $CENTREON_PATH ]]; then
+    success_message "Setting Centreon path as: $CENTREON_PATH\n"
+  else
+    error_message "Cannot find Centreon path in the configuration file"
+    ask_for_centreon_configuration_location
+  fi
 }
 
-## {Execute the ANSSI rules on Centreon web}
-function run_rules() {
-  info_message "Searching rules provided by the ANSSI"
-  RULES=$(find ./$RULES_FOLDER -name "*.yara")
-  for RULE in ${RULES[@]}; do
-    RULE_NAME=$(echo $RULE | cut -d '/' -f 3)
-    output_message "Testing rule : $RULE_NAME"
-    yara --recursive "$RULE" "$CENTREON_PATH"
-    if [[ $? -eq 0 ]]; then
+#---
+## {Execute the ANSSI rules}
+#---
+function run_rule() {
+  local RULE=$1
+  local PATH=$2
+  normal_message "Testing rule: $RULE on $PATH"
+  RESULT=$("$YARA" --recursive "$RULE" "$PATH")
+  if [[ -z $RESULT ]]; then
       success_message "\tNo vulnerability found"
+  else
+    output_message "Yara tool returned the message:"
+    error_message "$RESULT"
+  fi
+}
+
+#---
+## {Find provided ANSSI rules}
+#---
+function find_rules() {
+  info_message "Searching rules provided by the ANSSI"
+  cd "$RULES_FOLDER"
+  RULES=$(ls)
+  for RULE in ${RULES[@]}; do
+    if [[ $RULE = "exaramel.yara" ]]; then
+      for PATH in ${EXARAMEL_PATH_TO_CHECK[@]}; do
+        run_rule "$RULE" "$PATH"
+      done
+    else
+      run_rule "$RULE" "$CENTREON_PATH"
+    fi
+  done
+  cd ..
+}
+
+#---
+## {Ask for Centreon location}
+#----
+function ask_for_centreon_configuration_location() {
+  local ERROR=1
+  while [ $ERROR -ne 0 ]
+  do
+    output_message "Please specify in which folder Centreon is installed:"
+    normal_message "\n> "
+    read CUSTOM_LOCATION
+
+    if [[ -z $CUSTOM_LOCATION ]]; then
+      error_message "\nEmpty path given"
+    elif [[ -n $CUSTOM_LOCATION && -d $CUSTOM_LOCATION ]]; then
+      ERROR=0
+      CENTREON_PATH=$CUSTOM_LOCATION
+    else
+      error_message "\nFolder: '$CUSTOM_LOCATION' not found, not a directory or not readable"
     fi
   done
 }
 
-## {Run the script}
-check_that_yara_is_installed
-find_centreon_configuration_file
-find_centreon_path
-run_rules
+#---
+## {Process options}
+#----
+while getopts "rh" OPTIONS
+do
+  case ${OPTIONS} in
+    r)
+      # Run the script
+      RUN=1
+      ;;
+    h)
+      usage
+      exit 0
+      ;;
+    *)
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if [[ $RUN -eq 1 ]]; then
+  check_that_yara_is_installed
+  find_centreon_configuration_file
+  find_centreon_path
+  find_rules
+else
+  usage
+  exit 1;
+fi
