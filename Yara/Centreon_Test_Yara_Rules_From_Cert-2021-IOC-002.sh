@@ -44,31 +44,39 @@ function usage() {
   normal_message ""
   normal_message "Description:"
   normal_message ""
-  info_message "This tool will use the Yara software and execute each rule provided by the ANSSI"
-  info_message "to test your platform against modifications made by sandStorm or Exaramel"
-  normal_message "\tThe rules were provided the February 26, 2021 here :"
-  output_message "\thttp://www.cert.ssi.gouv.fr/uploads/CERTFR-2021-IOC-002-YARA.zip"
+  info_message "\tThis tool will use the Yara software and execute each the rules provided by the ANSSI"
+  info_message "\tto test your platform against modifications made by fobushell or exaramel"
   normal_message ""
-  normal_message "VirusTotal Yara can be found here : "
+  normal_message "\tThe rules were provided the February 26, 2021 by the ANSSI and are available here:"
+  normal_message "\thttp://www.cert.ssi.gouv.fr/uploads/CERTFR-2021-IOC-002-YARA.zip"
+  normal_message ""
+  normal_message "\tThis script will scan recursively following folders:"
+  normal_message "\t- for fobushell : /tmp, /etc/init, /etc/init.d, /etc/systemd/system"
+  normal_message "\t- for exaramel : your centreon folder"
+  normal_message ""
+  normal_message "\tFor more details about Yara you can check"
+  normal_message "\t- the documentation : https://yara.readthedocs.io/en/stable/"
+  normal_message "\t- the readme : https://github.com/VirusTotal/yara/blob/master/README.md"
+  normal_message "\t- yara help : \$ yara -h"
   #Usage
   normal_message ""
   normal_message "Usage:"
   normal_message ""
-  output_message "Do not run this script from the /tmp folder to avoid false positive (ie: the rules)"
+  output_message "\tDo not run this script from the '/tmp' or your 'centreon' folder to avoid false positives (ie: the rules)"
   success_message "\t-r\tRun the script"
   normal_message "\t-h\tDisplay this help"
-  #Help
+  #Requirement and Help
   normal_message ""
-  normal_message "Help:"
+  normal_message "Requirement:"
   normal_message ""
   normal_message "\tMake sure to have installed the yara software\n"
-  info_message "On CentOS 7 :"
-  normal_message "\tyum install epel-release"
-  normal_message "\tyum clean all"
-  normal_message "\tyum install yara.x86_64\n"
-  info_message "On CentOS 6 :"
-  normal_message "\tUse the tool provided on the Forensic repository"
-  normal_message "\tyum install https://centos.pkgs.org/6/forensics-x86_64/yara-3.5.0-7.1.el6.x86_64.rpm.html"
+  info_message "\tOn CentOS 7:"
+  normal_message "\t\tyum install epel-release"
+  normal_message "\t\tyum clean all"
+  normal_message "\t\tyum install yara.x86_64\n"
+  info_message "\tOn CentOS 6:"
+  normal_message "\t\tUse the tool provided on the Forensic repository"
+  normal_message "\t\tyum install https://forensics.cert.org/centos/cert/6/x86_64/yara-3.5.0-7.1.el6.x86_64.rpm"
   normal_message ""
 }
 
@@ -82,7 +90,6 @@ CENTREON_ETC_FILE="/etc/centreon/centreon.conf.php"
 CENTREON_PATH=""
 EXARAMEL_PATH_TO_CHECK=("/tmp/" "/etc/init/" "/etc/init.d/" "/etc/systemd/system/")
 COUNT=0
-
 
 #---
 ## {Check if mandatory Yara tool is installed}
@@ -119,7 +126,7 @@ function find_centreon_configuration_file() {
     error_message "Centreon configuration file was not found in folders commonly used\n"
     # Searching configuration file on all the platform
     normal_message "Searching for Centreon configuration file in all the filesystem"
-    FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php"  2>/dev/null)
+    FOUND_ETC_FOLDER=$(find / -name "centreon.conf.php" 2>/dev/null)
     if [[ ${#FOUND_ETC_FOLDER[@]} -eq 1 && -n ${FOUND_ETC_FOLDER[0]} && -e ${FOUND_ETC_FOLDER[0]} ]]; then
       CENTREON_ETC_FILE=${FOUND_ETC_FOLDER[0]}
       success_message "Found file: $CENTREON_ETC_FILE\n"
@@ -144,7 +151,7 @@ function find_centreon_path() {
         VALUE=$(echo $VALUE | tr -d "'")
         CENTREON_PATH=$(echo $VALUE | tr -d ";")
       fi
-    done < "$CENTREON_ETC_FILE"
+    done <"$CENTREON_ETC_FILE"
   else
     error_message "Skipping Centreon configuration file parsing\n"
     ask_for_centreon_configuration_location
@@ -170,12 +177,12 @@ function run_rule() {
   if [[ -d $PATH && -r $PATH ]]; then
     RESULT=$("$YARA" --recursive "$RULE" "$PATH")
     if [[ -z $RESULT ]]; then
-        success_message "Yara found nothing using the rule $RULE on the files of $PATH"
+      success_message "Yara found nothing using the rule $RULE on the files of $PATH"
     else
       output_message "Yara tool returned the message:"
       error_message "$RESULT"
       normal_message ""
-      ((COUNT+=1))
+      ((COUNT += 1))
     fi
   else
     error_message "\tFolder: $PATH does not exists or is not readable by this user"
@@ -191,7 +198,7 @@ function find_rules() {
   cd "$RULES_FOLDER"
   RULES=$(ls)
   for RULE in ${RULES[@]}; do
-    if [[ $RULE = "exaramel.yara" ]]; then
+    if [[ $RULE == "exaramel.yara" ]]; then
       for PATH in ${EXARAMEL_PATH_TO_CHECK[@]}; do
         run_rule "$RULE" "$PATH"
       done
@@ -218,8 +225,7 @@ function find_rules() {
 #----
 function ask_for_centreon_configuration_location() {
   local ERROR=1
-  while [ $ERROR -ne 0 ]
-  do
+  while [ $ERROR -ne 0 ]; do
     output_message "Please specify in which folder Centreon is installed:"
     normal_message "\n> "
     read CUSTOM_LOCATION
@@ -238,21 +244,20 @@ function ask_for_centreon_configuration_location() {
 #---
 ## {Process options}
 #----
-while getopts "rh" OPTIONS
-do
+while getopts "rh" OPTIONS; do
   case ${OPTIONS} in
-    r)
-      # Run the script
-      RUN=1
-      ;;
-    h)
-      usage
-      exit 0
-      ;;
-    *)
-      usage
-      exit 1
-      ;;
+  r)
+    # Run the script
+    RUN=1
+    ;;
+  h)
+    usage
+    exit 0
+    ;;
+  *)
+    usage
+    exit 1
+    ;;
   esac
 done
 
@@ -263,5 +268,5 @@ if [[ $RUN -eq 1 ]]; then
   find_rules
 else
   usage
-  exit 1;
+  exit 1
 fi
