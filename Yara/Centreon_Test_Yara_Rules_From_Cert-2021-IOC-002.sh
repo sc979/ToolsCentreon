@@ -44,7 +44,7 @@ function usage() {
   normal_message ""
   normal_message "Description:"
   normal_message ""
-  info_message "\tThis script will use the Yara software and execute each the rules provided by the ANSSI"
+  info_message "\tThis script will use the Yara software and execute each of the rules provided by the ANSSI"
   info_message "\tto test your platform against modifications made by fobushell or exaramel"
   normal_message ""
   normal_message "\tThe rules were provided the February 26, 2021 by the ANSSI and are available here:"
